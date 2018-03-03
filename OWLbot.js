@@ -117,7 +117,7 @@ function scheduleNotification() {
     }
     
     // get #overwatch-league channel
-    var channel = client.Channels.get("260473644793331713");    //377204868529782784);
+    var channel = client.Channels.get("377204868529782784");
     var match = nextMatch();
     
     //console.log(channel);
