@@ -15,10 +15,10 @@ var standings = [];
 var stageStandings = [];
 var notification = null;
 
-var clientID = config.client_id;
+var scheduleGetter;
+var standingsGetter;
 
-getMatchList();
-getSeasonStandings();
+var clientID = config.client_id;
 
 var client = new Discordie( {
     autoReconnect: true
@@ -30,6 +30,11 @@ client.Dispatcher.on(Events.GATEWAY_READY, e => {
     console.log(chalk.bold.green("Connected as: " +client.User.username));
     client.User.setGame("Overwatch League");
 
+	// get the schedule every 1 minute
+	scheduleGetter = schedule.scheduleJob("*/1 * * * *", getMatchList);
+	
+	// get the standings every 10 minutes
+	standingsGetter = schedule.scheduleJob("*/10 * * * *", getSeasonStandings);
 });
 
 client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
@@ -112,7 +117,7 @@ function scheduleNotification() {
     }
     
     // get #overwatch-league channel
-    var channel = client.Channels.get("377204868529782784");
+    var channel = client.Channels.get("260473644793331713");    //377204868529782784);
     var match = nextMatch();
     
     //console.log(channel);
@@ -144,7 +149,7 @@ function getMatchList() {
             var nextSchedule = body;
             matches = [];
             
-            for (var i = 1; i <= 7; i++) {
+            for (var i = 0; i < nextSchedule.data.stages.length; i++) {
                 for (var j = 0; j < nextSchedule.data.stages[i].matches.length; j++) {
                     matches.push(nextSchedule.data.stages[i].matches[j]);
                 }
@@ -155,8 +160,6 @@ function getMatchList() {
             scheduleNotification();
         }
     });
-    
-    setTimeout(getMatchList, 60000);
 };
 
 // gets the full-season standings in json format
@@ -187,8 +190,6 @@ function getSeasonStandings() {
         }
         else { console.log(error) }
     });
-    
-    setTimeout(getSeasonStandings, 600000);
 }
 
 // converts a json scheduled match into a printable string for schedule command
