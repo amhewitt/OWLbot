@@ -7,8 +7,8 @@ var request = require("request");
 const table = require("table").table;
 var schedule = require("node-schedule");
 
-var scheduleURL = "https://api.overwatchleague.com/schedule?en-us";
-var standingsURL = "https://api.overwatchleague.com/standings?en-us";
+var scheduleURL = config.schedule_url;
+var standingsURL = config.standings_url;
 
 var matches = [];
 var standings = [];
@@ -112,7 +112,7 @@ function scheduleNotification() {
     }
     
     // get #overwatch-league channel
-    var channel = client.Channels.get("260473644793331713");    //377204868529782784);
+    var channel = client.Channels.get("377204868529782784");
     var match = nextMatch();
     
     //console.log(channel);
