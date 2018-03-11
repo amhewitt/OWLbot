@@ -18,6 +18,31 @@ var notification = null;
 var scheduleGetter;
 var standingsGetter;
 
+var timezones = {
+"utc": "UTC",
+"gmt": "UTC",
+"est": "America/New_York",
+"edt": "America/New_York",
+"cst": "America/Chicago",
+"cdt": "America/Chicago",
+"mst": "America/Denver",
+"mdt": "America/Denver",
+"pst": "America/Los_Angeles",
+"pdt": "America/Los_Angeles",
+"akst": "America/Anchorage",
+"akdt": "America/Anchorage",
+"hst": "Pacific/Honolulu",
+"hdt": "Pacific/Honolulu",
+"cet": "Europe/Berlin",
+"eet": "Europe/Helsinki",
+"brt": "America/Sao_Paulo",
+"jst": "Asia/Tokyo",
+"kst": "Asia/Seoul",
+"aest": "Australia/Sydney",
+"acst": "Australia/Adelaide",
+"wst": "Australia/Perth"
+};
+
 var clientID = config.client_id;
 
 var client = new Discordie( {
@@ -30,11 +55,11 @@ client.Dispatcher.on(Events.GATEWAY_READY, e => {
     console.log(chalk.bold.green("Connected as: " +client.User.username));
     client.User.setGame("Overwatch League");
 
-	// get the schedule every 1 minute
-	scheduleGetter = schedule.scheduleJob("*/1 * * * *", getMatchList);
-	
-	// get the standings every 10 minutes
-	standingsGetter = schedule.scheduleJob("*/10 * * * *", getSeasonStandings);
+    // get the schedule every 1 minute
+    scheduleGetter = schedule.scheduleJob("*/1 * * * *", getMatchList);
+    
+    // get the standings every 10 minutes
+    standingsGetter = schedule.scheduleJob("*/10 * * * *", getSeasonStandings);
 });
 
 client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
@@ -42,7 +67,7 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
     var channel = e.message.channel;
     var author = e.message.author;
 
-    message = e.message.resolveContent().toLowerCase();
+    message = e.message.content.toLowerCase();
     origMessage = e.message.content;
     
     // only respond to mentions or DMs. no trigger character 
@@ -59,25 +84,56 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
     }
 
     if (mentionsMe) {
-        if (message.startsWith("@owlbot schedule") || message.startsWith("schedule")) {
+        //console.log(message);
+        var tag = "<@" + clientID + ">";
+        message = message.replace(tag, "");
+        message = message.trim();
+        
+        if (message.startsWith("help")) {
+            response = "```schedule <timezone abbrev>: displays the next 3 scheduled OWL matches\r\n";
+            response += "results <timezone abbrev>: displays the score of the last 3 OWL matches\r\n";
+            response += "standings <stage>: displays the current OWL standings```";
+            
+            channel.sendMessage(response);
+        }
+        else if (message.startsWith("schedule")) {
+            // look for more parameters
+            var params = message.replace("schedule", "");
+            params = params.trim();
+            
             var nextMatches = nextThreeMatches();
             var response = "No upcoming matches found.";
             if (nextMatches.length > 0) {
                 response = "Upcoming matches:";
                 for (var i = 0; i < nextMatches.length; i++) {
                     response += "\r\n";
-                    response += matchToString(nextMatches[i]);
+                    response += matchToString(nextMatches[i], params);
                 }
             }
             
             channel.sendMessage(response);
         }
-        else if (message.startsWith("@owlbot standings") || message.startsWith("standings")) {          
+        else if (message.startsWith("results")) {
             // look for more parameters
-            // for channel messages
-            var params = message.replace("@owlbot standings", "");
-            // for DMs
-            params = params.replace("standings", "");
+            var params = message.replace("results", "");
+            params = params.trim();
+            
+            var prevMatches = prevThreeMatches();
+            var response = "No upcoming matches found.";
+            if (prevMatches.length > 0) {
+                response = "Recent matches:";
+                for (var i = 0; i < prevMatches.length; i++) {
+                    response += "\r\n";
+                    response += matchToResult(prevMatches[i], params);
+                }
+            }
+            
+            channel.sendMessage(response);
+        }
+        else if (message.startsWith("standings")) {          
+            // look for more parameters
+            var params = message.replace("standings", "");
+            params = params.trim();
             
             // stage parameter should be an int from 1 to 4 if it exists
             var stage = 0;
@@ -112,19 +168,26 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
 
 // create a one-time notification when the next match is scheduled to start
 function scheduleNotification() {
+    var match = nextMatch();
+    if (match === null) {
+        return;
+    }
+    
+    var start = new Date(match.startDate);
+    
     if (notification !== null) {
+        if (notification.nextInvocation() == start) {
+            return;
+        }
+    
         notification.cancel();
     }
     
     // get #overwatch-league channel
-    var channel = client.Channels.get("377204868529782784");
-    var match = nextMatch();
+    var channel = client.Channels.get(config.notification_channel);
     
     //console.log(channel);
-    if (channel !== null && match !== null && new Date(match.startDate) > new Date()) {
-        var start = new Date(match.startDate);
-        //console.log(start);
-        
+    if (channel !== null && start > new Date()) {
         notification = schedule.scheduleJob(start, function() {
             var team1 = "TBA";
             var team2 = "TBA";
@@ -193,12 +256,16 @@ function getSeasonStandings() {
 }
 
 // converts a json scheduled match into a printable string for schedule command
-function matchToString(match) {
+function matchToString(match, timezone) {
     var options = {  
         weekday: "long", month: "short", timeZoneName: "short",
-        day: "numeric", hour: "2-digit", minute: "2-digit"  
+        day: "numeric", hour: "2-digit", minute: "2-digit"
     };
 
+    if (timezone in timezones) {
+        options["timeZone"] = timezones[timezone];
+    }
+    
     var date = new Date(match.startDate);
     var team1 = "TBA";
     var team2 = "TBA";
@@ -209,6 +276,33 @@ function matchToString(match) {
         team2 = match.competitors[1].name;
     }
     return date.toLocaleTimeString("en-us", options) + ": " + team1 + " vs. " + team2;
+};
+
+// converts a json completed match into a printable string for results command
+function matchToResult(match, timezone) {
+    var options = {  
+        weekday: "long", month: "short", timeZoneName: "short",
+        day: "numeric", hour: "2-digit", minute: "2-digit"
+    };
+    
+    if (timezone in timezones) {
+        options["timeZone"] = timezones[timezone];
+    }
+    
+    var date = new Date(match.startDate);
+    var team1 = "TBA";
+    var team2 = "TBA";
+    var score1 = 0;
+    var score2 = 0;
+    if (match.competitors[0] !== null) {
+        team1 = match.competitors[0].name;
+        score1 = match.scores[0].value;
+    }
+    if (match.competitors[1] !== null) {
+        team2 = match.competitors[1].name;
+        score2 = match.scores[1].value;
+    }
+    return date.toLocaleTimeString("en-us", options) + ": " + team1 + " " + score1 + "-" + score2 + " " + team2;
 };
 
 // converts a json scheduled match into a printable string for auto notification
@@ -320,6 +414,19 @@ function nextThreeMatches() {
     }
     
     return nextThree;
+};
+
+// finds the last 3 completed matches
+function prevThreeMatches() {
+    var prevThree = [];
+    
+    for (var i = matches.length - 1; i >= 0 && prevThree.length < 3; i--) {
+        if (matches[i].state == "CONCLUDED") {
+            prevThree.push(matches[i]);
+        }
+    }
+    
+    return prevThree;
 };
 
 function startsWith(str, prefix) {
