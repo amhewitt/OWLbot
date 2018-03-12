@@ -66,6 +66,8 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
     var guild = e.message.guild;
     var channel = e.message.channel;
     var author = e.message.author;
+	
+	if (e.message.author == clientID) return;
 
     message = e.message.content.toLowerCase();
     origMessage = e.message.content;
