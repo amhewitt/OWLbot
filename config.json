@@ -1,0 +1,12 @@
+{
+  "discord_token": "NDIxNzI3MjQ1NDEzOTA4NDgx.DYXUew.HRNGBV85Gt7lhperVj6DHIvMzFs",
+  "client_id": "421727245413908481",
+  "battlenet_API_key": "API_KEY_HERE",
+  "sqlhost": "",
+  "sqluser": "",
+  "sqlpass": "",
+  "quotedbname": "",
+  "schedule_url": "https://api.overwatchleague.com/schedule?en-us",
+  "standings_url": "https://api.overwatchleague.com/standings?en-us",
+  "notification_channel": "377204868529782784"
+}
