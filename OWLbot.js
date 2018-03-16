@@ -59,15 +59,15 @@ client.Dispatcher.on(Events.GATEWAY_READY, e => {
     scheduleGetter = schedule.scheduleJob("*/1 * * * *", getMatchList);
     
     // get the standings every 10 minutes
-    standingsGetter = schedule.scheduleJob("*/10 * * * *", getSeasonStandings);
+    standingsGetter = schedule.scheduleJob("*/1 * * * *", getSeasonStandings);
 });
 
 client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
     var guild = e.message.guild;
     var channel = e.message.channel;
     var author = e.message.author;
-	
-	if (e.message.author == clientID) return;
+    
+    if (e.message.author == clientID) return;
 
     message = e.message.content.toLowerCase();
     origMessage = e.message.content;
@@ -149,6 +149,8 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
                 }
             }
             
+            console.log("standings command is valid? " + valid.toString());
+            console.log("stage param: " + stage.toString());
             if (valid) {
                 var response = "Standings not found.";
                 if (standings !== null && standings.length > 0) {
@@ -238,7 +240,7 @@ function getSeasonStandings() {
             
             for (var i = 0; i < dings.ranks.length; i++) {
                 if (dings.ranks[i].competitor.id === dings.season.division["79"][0].id || dings.ranks[i].competitor.id === dings.season.division["80"][0].id) {
-                        dings.ranks[i].competitor.name += "*";
+                    dings.ranks[i].competitor.name += "*";
                 }
                 
                 standings.push(dings.ranks[i]);
