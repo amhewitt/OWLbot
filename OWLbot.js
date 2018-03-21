@@ -14,6 +14,7 @@ var matches = [];
 var standings = [];
 var stageStandings = [];
 var notification = null;
+var stageMaps = [];
 
 var scheduleGetter;
 var standingsGetter;
@@ -58,8 +59,8 @@ client.Dispatcher.on(Events.GATEWAY_READY, e => {
     // get the schedule every 1 minute
     scheduleGetter = schedule.scheduleJob("*/1 * * * *", getMatchList);
     
-    // get the standings every 10 minutes
-    standingsGetter = schedule.scheduleJob("*/1 * * * *", getSeasonStandings);
+    // get the standings every 5 minutes
+    standingsGetter = schedule.scheduleJob("*/5 * * * *", getSeasonStandings);
 });
 
 client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
@@ -149,8 +150,8 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
                 }
             }
             
-            console.log("standings command is valid? " + valid.toString());
-            console.log("stage param: " + stage.toString());
+            //console.log("standings command is valid? " + valid.toString());
+            //console.log("stage param: " + stage.toString());
             if (valid) {
                 var response = "Standings not found.";
                 if (standings !== null && standings.length > 0) {
@@ -215,10 +216,42 @@ function getMatchList() {
         if (!error && response.statusCode === 200) {
             var nextSchedule = body;
             matches = [];
+            stageMaps = [];
             
-            for (var i = 0; i < nextSchedule.data.stages.length; i++) {
+            for (var i = 0; i < nextSchedule.data.stages.length; i++) {             
                 for (var j = 0; j < nextSchedule.data.stages[i].matches.length; j++) {
                     matches.push(nextSchedule.data.stages[i].matches[j]);
+                    
+                    // calculate stage-specific standings by adding up wins and losses
+                    if (nextSchedule.data.stages[i].id < 1 || nextSchedule.data.stages[i].id > 4 || nextSchedule.data.stages[i].matches[j].state != "CONCLUDED" || nextSchedule.data.stages[i].matches[j].tournament.type != "OPEN_MATCHES") {
+                        continue;
+                    }
+                    
+                    var team1ID = nextSchedule.data.stages[i].matches[j].competitors[0].id.toString();
+                    var team2ID = nextSchedule.data.stages[i].matches[j].competitors[1].id.toString();
+                    
+                    if (team1ID in stageMaps === false) {
+                        stageMaps[team1ID] = { 1: { wins: 0, losses: 0, draws: 0 },
+                                               2: { wins: 0, losses: 0, draws: 0 },
+                                               3: { wins: 0, losses: 0, draws: 0 },
+                                               4: { wins: 0, losses: 0, draws: 0 } };
+                    }
+                    
+                    if (team2ID in stageMaps === false) {
+                        stageMaps[team2ID] = { 1: { wins: 0, losses: 0, draws: 0 },
+                                               2: { wins: 0, losses: 0, draws: 0 },
+                                               3: { wins: 0, losses: 0, draws: 0 },
+                                               4: { wins: 0, losses: 0, draws: 0 } };
+                    }
+
+                    stageMaps[team1ID][i].wins += nextSchedule.data.stages[i].matches[j].wins[0];
+                    stageMaps[team2ID][i].wins += nextSchedule.data.stages[i].matches[j].wins[1];
+                    
+                    stageMaps[team1ID][i].losses += nextSchedule.data.stages[i].matches[j].losses[0];
+                    stageMaps[team2ID][i].losses += nextSchedule.data.stages[i].matches[j].losses[1];
+                    
+                    stageMaps[team1ID][i].draws += nextSchedule.data.stages[i].matches[j].ties[0];
+                    stageMaps[team2ID][i].draws += nextSchedule.data.stages[i].matches[j].ties[1];
                 }
             }
             
@@ -371,10 +404,14 @@ function standingsToTable(stage) {
 function stageStandingsToTable(stage) {
     var theStandings = stageStandings[stage];
     
-    var tableData = [ ["Team", "W", "L"] ];
+    var tableData = [ ["Team", "W", "L", "MW", "ML", "MT", "Diff"] ];
     var config = { columns: { 0: { alignment: "left" },
                               1: { alignment: "right" },
-                              2: { alignment: "right" } } };
+                              2: { alignment: "right" },
+                              3: { alignment: "right" },
+                              4: { alignment: "right" },
+                              5: { alignment: "right" },
+                              6: { alignment: "right" } } };
     
     for (var i = 0; i < theStandings.length; i++) {
         var teamName = "";
@@ -385,10 +422,19 @@ function stageStandingsToTable(stage) {
         teamName += i + 1;
         teamName += ". "
         teamName += theStandings[i].name;
-
+        
+        var id = theStandings[i].id.toString();     
+        var diff = stageMaps[id][stage].wins - stageMaps[id][stage].losses;
+        if (diff >= 0) {
+            diff = "+" + diff;
+        }
         
         tableData.push([teamName, theStandings[i].standings.wins, 
-                                  theStandings[i].standings.losses]);
+                                  theStandings[i].standings.losses,
+                                  stageMaps[id][stage].wins,
+                                  stageMaps[id][stage].losses,
+                                  stageMaps[id][stage].draws,
+                                  diff]);
     }
     
     var theTable = table(tableData, config);
