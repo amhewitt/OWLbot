@@ -21,7 +21,7 @@ var standingsGetter;
 
 var timezones = {
 "utc": "UTC",
-"gmt": "UTC",
+"gmt": "Europe/London",
 "est": "America/New_York",
 "edt": "America/New_York",
 "cst": "America/Chicago",
