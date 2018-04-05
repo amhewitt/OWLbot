@@ -290,6 +290,12 @@ function getSeasonStandings() {
 
             for (var k = 1; k <= 4; k++) {
                 stageStandings[k].sort(function(a,b) {
+                    if (a.standings.wins + a.standings.losses == 0) {
+                        return (b.standings.wins - b.standings.losses);
+                    } else if (b.standings.wins + b.standings.losses == 0) {
+                        return (a.standings.losses - a.standings.wins);
+                    } 
+                    
                     var record1 = a.standings.wins / (a.standings.wins + a.standings.losses);
                     var record2 = b.standings.wins / (b.standings.wins + b.standings.losses);
                     if (a.standings.wins != b.standings.wins && a.standings.losses != b.standings.losses) {
