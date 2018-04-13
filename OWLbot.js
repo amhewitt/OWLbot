@@ -300,7 +300,7 @@ function getSeasonStandings() {
                     var record2 = b.standings.wins / (b.standings.wins + b.standings.losses);
                     if (a.standings.wins != b.standings.wins && a.standings.losses != b.standings.losses) {
                         return record2 - record1;
-                    } else if (stageMaps.count > 0) {
+                    } else if (stageMaps.length > 0) {
                         var diff1 = stageMaps[a.id][k].wins - stageMaps[a.id.toString()][k].losses;
                         var diff2 = stageMaps[b.id][k].wins - stageMaps[b.id.toString()][k].losses;
                         return diff2 - diff1;
