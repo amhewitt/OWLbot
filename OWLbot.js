@@ -385,14 +385,12 @@ function standingsToTable(stage) {
     
     var theStandings = standings;
     
-    var tableData = [ ["Team", "W", "L", "MW", "ML", "MT", "Diff"] ];
+    var tableData = [ ["Team", "W", "L", "Map W-L-T", "Diff"] ];
     var config = { columns: { 0: { alignment: "left" },
                               1: { alignment: "right" },
                               2: { alignment: "right" },
                               3: { alignment: "right" },
-                              4: { alignment: "right" },
-                              5: { alignment: "right" },
-                              6: { alignment: "right" } } };
+                              4: { alignment: "right" } } };
     
     for (var i = 0; i < theStandings.length; i++) {
         var teamName = "";
@@ -411,9 +409,7 @@ function standingsToTable(stage) {
         
         tableData.push([teamName, theStandings[i].records[0].matchWin, 
                                   theStandings[i].records[0].matchLoss,
-                                  theStandings[i].records[0].gameWin,
-                                  theStandings[i].records[0].gameLoss,
-                                  theStandings[i].records[0].gameTie,
+                                  "" + theStandings[i].records[0].gameWin + '-' + theStandings[i].records[0].gameLoss + '-' + theStandings[i].records[0].gameTie,
                                   diff]);
     }
     
@@ -426,19 +422,17 @@ function standingsToTable(stage) {
 function stageStandingsToTable(stage) {
     var theStandings = stageStandings[stage];
     
-    var tableData = [ ["Team", "W", "L", "MW", "ML", "MT", "Diff"] ];
+    var tableData = [ ["Team", "W", "L", "Map W-L-T", "Diff"] ];
     var config = { columns: { 0: { alignment: "left" },
                               1: { alignment: "right" },
                               2: { alignment: "right" },
                               3: { alignment: "right" },
-                              4: { alignment: "right" },
-                              5: { alignment: "right" },
-                              6: { alignment: "right" } } };
+                              4: { alignment: "right" } } };
     
     for (var i = 0; i < theStandings.length; i++) {
         var teamName = "";
         
-        if (theStandings[i].placement < 10) {
+        if (i < 9) {
             teamName += " ";
         }
         teamName += i + 1;
@@ -453,9 +447,7 @@ function stageStandingsToTable(stage) {
         
         tableData.push([teamName, theStandings[i].standings.wins, 
                                   theStandings[i].standings.losses,
-                                  stageMaps[id][stage].wins,
-                                  stageMaps[id][stage].losses,
-                                  stageMaps[id][stage].draws,
+                                  "" + stageMaps[id][stage].wins + "-" + stageMaps[id][stage].losses + "-" + stageMaps[id][stage].draws,
                                   diff]);
     }
     
