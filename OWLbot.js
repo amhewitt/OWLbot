@@ -132,8 +132,6 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
             if (params.toUpperCase() in teamAbbrevs) {
                 
                 //console.log("Searching for " + params.toUpperCase() + "'s next games.")
-                
-                
                 var nextMatchesTeam = nextThreeMatchesTeam(params.toUpperCase());
                 
                 responseTeam = "No upcoming matches found.";
@@ -145,13 +143,10 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
                     }
                 }
 
-                channel.sendMessage(responseTeam);
-                
-                
+                channel.sendMessage(responseTeam);        
             } else {
                 
                 //console.log("Searching for next games.")
-            
                 var nextMatches = nextThreeMatches();
                 var response = "No upcoming matches found.";
                 if (nextMatches.length > 0) {
@@ -173,7 +168,6 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
             if (params.toUpperCase() in teamAbbrevs) {
                 
                 //console.log("Searching for " + params.toUpperCase() + "'s latest games.")
-                
                 var prevMatchesTeam = prevThreeMatchesTeam(params.toUpperCase());
 
                 var responseTeam = "No previous matches found.";
@@ -185,13 +179,10 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
                     }
                 }
 
-                channel.sendMessage(responseTeam);
-                
-                
+                channel.sendMessage(responseTeam);    
             } else {
                 
                 //console.log("Searching for latest games.")
-            
                 var prevMatches = prevThreeMatches();
                 var response = "No upcoming matches found.";
                 if (prevMatches.length > 0) {
@@ -205,7 +196,6 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
                 channel.sendMessage(response);
             }
         }
-        
         else if (message.startsWith("teams")){
             response = "```";
             
@@ -566,7 +556,6 @@ function nextThreeMatches() {
 };
 
 // finds the next 3 matches that have not happened yet and contain a specific team
-
 function nextThreeMatchesTeam(team) {
     var nextThree = [];
     
@@ -595,6 +584,7 @@ function prevThreeMatches() {
     return prevThree;
 };
 
+// finds the last 3 completed matches that contain a specific team
 function prevThreeMatchesTeam(team) {
     var prevThree = [];
     
