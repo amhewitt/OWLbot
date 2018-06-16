@@ -44,6 +44,23 @@ var timezones = {
 "wst": "Australia/Perth"
 };
 
+var teamAbbrevs = {
+    "BOS": "Boston Uprising",
+    "DAL": "Dallas Fuel",
+    "FLA": "Florida Mayhem",
+    "HOU": "Houston Outlaws",
+    "LDN": "London Spitfire",
+    "GLA": "Los Angeles Gladiators",
+    "VAL": "Los Angeles Valiant",
+    "NYE": "New York Excelsior",
+    "PHI": "Philadelphia Fusion",
+    "SEO": "Seoul Dynasty",
+    "SFS": "San Francisco Shock",
+    "SHD": "Shanghai Dragons"
+};
+
+// TODO: dynamically fetch the teamlist from the API
+
 var clientID = config.client_id;
 
 var client = new Discordie( {
@@ -62,6 +79,11 @@ client.Dispatcher.on(Events.GATEWAY_READY, e => {
     // get the standings every 5 minutes
     standingsGetter = schedule.scheduleJob("*/5 * * * *", getSeasonStandings);
 });
+
+/**
+    For now OWLbot can take a team parameter OR a timezone parameter, but not both.
+    TODO: expand this functionality.
+**/
 
 client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
     var guild = e.message.guild;
@@ -93,9 +115,12 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
         message = message.trim();
         
         if (message.startsWith("help")) {
-            response = "```schedule <timezone abbrev>: displays the next 3 scheduled OWL matches\r\n";
-            response += "results <timezone abbrev>: displays the score of the last 3 OWL matches\r\n";
-            response += "standings <stage>: displays the current OWL standings```";
+            response = "```schedule <timezone abbrev>:   displays the next 3 scheduled OWL matches according to specified timezone\r\n";
+            response += "schedule <team abbrev>:       displays the specified team's next 3 OWL matches\r\n";
+            response += "results <timezone abbrev>:    displays the score of the last 3 OWL matches according to specified timezone\r\n";
+            response += "results <team abbrev>:        displays the score of the specified team's last 3 OWL matches\r\n";
+            response += "standings <stage>:            displays the current OWL standings\r\n";
+            response += "teams:                        displays the current list of teams with their abbreviations```";
             
             channel.sendMessage(response);
         }
@@ -104,34 +129,93 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
             var params = message.replace("schedule", "");
             params = params.trim();
             
-            var nextMatches = nextThreeMatches();
-            var response = "No upcoming matches found.";
-            if (nextMatches.length > 0) {
-                response = "Upcoming matches:";
-                for (var i = 0; i < nextMatches.length; i++) {
-                    response += "\r\n";
-                    response += matchToString(nextMatches[i], params);
+            if (params.toUpperCase() in teamAbbrevs) {
+                
+                //console.log("Searching for " + params.toUpperCase() + "'s next games.")
+                
+                
+                var nextMatchesTeam = nextThreeMatchesTeam(params.toUpperCase());
+                
+                responseTeam = "No upcoming matches found.";
+                if (nextMatchesTeam.length > 0) {
+                    responseTeam = "Upcoming matches:";
+                    for (var i = 0; i < nextMatchesTeam.length; i++) {
+                        responseTeam += "\r\n";
+                        responseTeam += matchToString(nextMatchesTeam[i], params);
+                    }
                 }
-            }
+
+                channel.sendMessage(responseTeam);
+                
+                
+            } else {
+                
+                //console.log("Searching for next games.")
             
-            channel.sendMessage(response);
+                var nextMatches = nextThreeMatches();
+                var response = "No upcoming matches found.";
+                if (nextMatches.length > 0) {
+                    response = "Upcoming matches:";
+                    for (var i = 0; i < nextMatches.length; i++) {
+                        response += "\r\n";
+                        response += matchToString(nextMatches[i], params);
+                    }
+                }
+
+                channel.sendMessage(response);
+            }
         }
         else if (message.startsWith("results")) {
             // look for more parameters
             var params = message.replace("results", "");
             params = params.trim();
             
-            var prevMatches = prevThreeMatches();
-            var response = "No upcoming matches found.";
-            if (prevMatches.length > 0) {
-                response = "Recent matches:";
-                for (var i = 0; i < prevMatches.length; i++) {
-                    response += "\r\n";
-                    response += matchToResult(prevMatches[i], params);
+            if (params.toUpperCase() in teamAbbrevs) {
+                
+                //console.log("Searching for " + params.toUpperCase() + "'s latest games.")
+                
+                var prevMatchesTeam = prevThreeMatchesTeam(params.toUpperCase());
+
+                var responseTeam = "No previous matches found.";
+                if (prevMatchesTeam.length > 0) {
+                    responseTeam = "Recent matches:";
+                    for (var i = 0; i < prevMatchesTeam.length; i++) {
+                        responseTeam += "\r\n";
+                        responseTeam += matchToResult(prevMatchesTeam[i], params);
+                    }
                 }
+
+                channel.sendMessage(responseTeam);
+                
+                
+            } else {
+                
+                //console.log("Searching for latest games.")
+            
+                var prevMatches = prevThreeMatches();
+                var response = "No upcoming matches found.";
+                if (prevMatches.length > 0) {
+                    response = "Recent matches:";
+                    for (var i = 0; i < prevMatches.length; i++) {
+                        response += "\r\n";
+                        response += matchToResult(prevMatches[i], params);
+                    }
+                }
+
+                channel.sendMessage(response);
+            }
+        }
+        
+        else if (message.startsWith("teams")){
+            response = "```";
+            
+            for(team in teamAbbrevs) {
+                response += team + ": " + teamAbbrevs[team] + "\r\n";
             }
             
-            channel.sendMessage(response);
+            response += "```";
+            channel.sendMessage(response);     
+            
         }
         else if (message.startsWith("standings")) {          
             // look for more parameters
@@ -473,6 +557,24 @@ function nextThreeMatches() {
     
     for (var i = 0; i < matches.length && nextThree.length < 3; i++) {
         if (matches[i].state == "PENDING") {
+            //console.log("Loading match " + i);
+            nextThree.push(matches[i]);
+        }
+    }
+    
+    return nextThree;
+};
+
+// finds the next 3 matches that have not happened yet and contain a specific team
+
+function nextThreeMatchesTeam(team) {
+    var nextThree = [];
+    
+    for (var i = 0; i < matches.length && nextThree.length < 3; i++) {
+        if (matches[i].state == "PENDING" &&
+            matches[i].competitors[0] &&
+            (matches[i].competitors[0].abbreviatedName == team || 
+            matches[i].competitors[1].abbreviatedName == team)) {
             nextThree.push(matches[i]);
         }
     }
@@ -486,6 +588,21 @@ function prevThreeMatches() {
     
     for (var i = matches.length - 1; i >= 0 && prevThree.length < 3; i--) {
         if (matches[i].state == "CONCLUDED") {
+            prevThree.push(matches[i]);
+        }
+    }
+    
+    return prevThree;
+};
+
+function prevThreeMatchesTeam(team) {
+    var prevThree = [];
+    
+    for (var i = matches.length - 1; i >= 0 && prevThree.length < 3; i--) {
+        if (matches[i].state == "CONCLUDED" &&
+            matches[i].competitors[0] &&
+            (matches[i].competitors[0].abbreviatedName == team ||
+            matches[i].competitors[1].abbreviatedName == team)) {
             prevThree.push(matches[i]);
         }
     }
